@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package badge;
+
+// badge service definition
+service BadgeService {
+    rpc MigrateData(MigrationRequest) returns (MigrationReply){}
+    // get all badges as a list
+    rpc GetBadges(BadgeRequest) returns (Badges) {}
+    // get all badges as a list from mysql table
+    rpc GetBadgesMysql(Connection) returns (Badges) {}
+
+    // get all badges in a stream
+    rpc GetStreamBadge(BadgeRequest) returns (stream Badge){}
+    // get all badges in a stream from mysql table
+    rpc GetStreamBadgeMysql(Connection) returns (stream Badge){}
+}
+
+// will be used to coordinate with the server what the user wants
+message BadgeRequest{
+    string name = 1;
+}
+message MigrationRequest{
+    ConnectionIO origin=1;
+    ConnectionIO destination=2;
+    string table = 3;
+    string type = 8;
+}
+message MigrationReply{
+    string outcome =1;
+}
+message Connection{
+    optional string connection =1;
+    string username = 2;
+    string password = 3;
+    string host = 4;
+    optional int32 port = 5;
+    string database = 6;
+    string table = 7;
+}
+message ConnectionIO{
+    string user = 2;
+    string password = 3;
+    string host = 4;
+    int32 port = 5;
+    string database = 6;
+    repeated int32 client_flags = 9;
+    optional string ssl_ca = 10;
+}
+
+message ConnectionWithMetadata{
+    string connection =1;
+    string username = 2;
+    string password = 3;
+    string host = 4;
+    int32 port = 5;
+    string database = 6;
+    string tableIn = 7;
+    string tableOut = 8;
+    repeated string rows = 9;
+    repeated string types = 10;
+    string primaryKey = 11;
+}
+
+
+// list of Badges
+message Badges {
+    repeated Badge badges = 1;
+}
+
+
+// single badge
+// follows the database keys in badges
+message Badge{
+    int64 Id = 1;
+    int64 UserId = 2;
+    string Name = 3;
+    string Date = 4;
+    int64 Class = 5;
+    string TagBased = 6;
+    
+}
