@@ -4,7 +4,18 @@ package badge;
 
 // badge service definition
 service BadgeService {
-    rpc MigrateData(MigrationRequest) returns (MigrationReply){}
+    // migrate mongo to sql 
+    rpc MigrateDataMongoToSQL(MigrationRequestMongoToSQL) returns (MigrationReply) {}
+
+    // migrate mongo to mongo
+    rpc MigrateDataMongo(MigrationRequestMongo) returns (MigrationReply) {}
+
+    // migrate sql to sql
+    rpc MigrateDataSQL(MigrationRequestSQL) returns (MigrationReply){}
+
+    // migrate sql to mongo
+    rpc MigrateDataSQLToMongo(MigrationRequestSQLToMongo) returns (MigrationReply){}
+
     // get all badges as a list
     rpc GetBadges(BadgeRequest) returns (Badges) {}
     // get all badges as a list from mysql table
@@ -14,15 +25,34 @@ service BadgeService {
     rpc GetStreamBadge(BadgeRequest) returns (stream Badge){}
     // get all badges in a stream from mysql table
     rpc GetStreamBadgeMysql(Connection) returns (stream Badge){}
+    
 }
 
 // will be used to coordinate with the server what the user wants
 message BadgeRequest{
     string name = 1;
 }
-message MigrationRequest{
-    ConnectionIO origin=1;
-    ConnectionIO destination=2;
+message MigrationRequestMongoToSQL{
+    ConnectionIOMongo origin=1;
+    ConnectionIOSQL destination=2;
+    string table = 3;
+    string type = 8;
+}
+message MigrationRequestSQL{
+    ConnectionIOSQL origin=1;
+    ConnectionIOSQL destination=2;
+    string table = 3;
+    string type = 8;
+}
+message MigrationRequestMongo{
+    ConnectionIOMongo origin=1;
+    ConnectionIOMongo destination=2;
+    string table = 3;
+    string type = 8;
+}
+message MigrationRequestSQLToMongo{
+    ConnectionIOSQL origin=1;
+    ConnectionIOMongo destination=2;
     string table = 3;
     string type = 8;
 }
@@ -38,7 +68,7 @@ message Connection{
     string database = 6;
     string table = 7;
 }
-message ConnectionIO{
+message ConnectionIOSQL{
     string user = 2;
     string password = 3;
     string host = 4;
@@ -46,6 +76,12 @@ message ConnectionIO{
     string database = 6;
     repeated int32 client_flags = 9;
     optional string ssl_ca = 10;
+}
+
+
+message ConnectionIOMongo{
+    string connectionString = 1;
+    string database = 2;
 }
 
 message ConnectionWithMetadata{

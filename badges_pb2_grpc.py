@@ -15,9 +15,24 @@ class BadgeServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.MigrateData = channel.unary_unary(
-                '/badge.BadgeService/MigrateData',
-                request_serializer=badges__pb2.MigrationRequest.SerializeToString,
+        self.MigrateDataMongoToSQL = channel.unary_unary(
+                '/badge.BadgeService/MigrateDataMongoToSQL',
+                request_serializer=badges__pb2.MigrationRequestMongoToSQL.SerializeToString,
+                response_deserializer=badges__pb2.MigrationReply.FromString,
+                )
+        self.MigrateDataMongo = channel.unary_unary(
+                '/badge.BadgeService/MigrateDataMongo',
+                request_serializer=badges__pb2.MigrationRequestMongo.SerializeToString,
+                response_deserializer=badges__pb2.MigrationReply.FromString,
+                )
+        self.MigrateDataSQL = channel.unary_unary(
+                '/badge.BadgeService/MigrateDataSQL',
+                request_serializer=badges__pb2.MigrationRequestSQL.SerializeToString,
+                response_deserializer=badges__pb2.MigrationReply.FromString,
+                )
+        self.MigrateDataSQLToMongo = channel.unary_unary(
+                '/badge.BadgeService/MigrateDataSQLToMongo',
+                request_serializer=badges__pb2.MigrationRequestSQLToMongo.SerializeToString,
                 response_deserializer=badges__pb2.MigrationReply.FromString,
                 )
         self.GetBadges = channel.unary_unary(
@@ -46,8 +61,30 @@ class BadgeServiceServicer(object):
     """badge service definition
     """
 
-    def MigrateData(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+    def MigrateDataMongoToSQL(self, request, context):
+        """migrate mongo to sql 
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def MigrateDataMongo(self, request, context):
+        """migrate mongo to mongo
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def MigrateDataSQL(self, request, context):
+        """migrate sql to sql
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def MigrateDataSQLToMongo(self, request, context):
+        """migrate sql to mongo
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -83,9 +120,24 @@ class BadgeServiceServicer(object):
 
 def add_BadgeServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'MigrateData': grpc.unary_unary_rpc_method_handler(
-                    servicer.MigrateData,
-                    request_deserializer=badges__pb2.MigrationRequest.FromString,
+            'MigrateDataMongoToSQL': grpc.unary_unary_rpc_method_handler(
+                    servicer.MigrateDataMongoToSQL,
+                    request_deserializer=badges__pb2.MigrationRequestMongoToSQL.FromString,
+                    response_serializer=badges__pb2.MigrationReply.SerializeToString,
+            ),
+            'MigrateDataMongo': grpc.unary_unary_rpc_method_handler(
+                    servicer.MigrateDataMongo,
+                    request_deserializer=badges__pb2.MigrationRequestMongo.FromString,
+                    response_serializer=badges__pb2.MigrationReply.SerializeToString,
+            ),
+            'MigrateDataSQL': grpc.unary_unary_rpc_method_handler(
+                    servicer.MigrateDataSQL,
+                    request_deserializer=badges__pb2.MigrationRequestSQL.FromString,
+                    response_serializer=badges__pb2.MigrationReply.SerializeToString,
+            ),
+            'MigrateDataSQLToMongo': grpc.unary_unary_rpc_method_handler(
+                    servicer.MigrateDataSQLToMongo,
+                    request_deserializer=badges__pb2.MigrationRequestSQLToMongo.FromString,
                     response_serializer=badges__pb2.MigrationReply.SerializeToString,
             ),
             'GetBadges': grpc.unary_unary_rpc_method_handler(
@@ -120,7 +172,7 @@ class BadgeService(object):
     """
 
     @staticmethod
-    def MigrateData(request,
+    def MigrateDataMongoToSQL(request,
             target,
             options=(),
             channel_credentials=None,
@@ -130,8 +182,59 @@ class BadgeService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/badge.BadgeService/MigrateData',
-            badges__pb2.MigrationRequest.SerializeToString,
+        return grpc.experimental.unary_unary(request, target, '/badge.BadgeService/MigrateDataMongoToSQL',
+            badges__pb2.MigrationRequestMongoToSQL.SerializeToString,
+            badges__pb2.MigrationReply.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def MigrateDataMongo(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/badge.BadgeService/MigrateDataMongo',
+            badges__pb2.MigrationRequestMongo.SerializeToString,
+            badges__pb2.MigrationReply.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def MigrateDataSQL(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/badge.BadgeService/MigrateDataSQL',
+            badges__pb2.MigrationRequestSQL.SerializeToString,
+            badges__pb2.MigrationReply.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def MigrateDataSQLToMongo(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/badge.BadgeService/MigrateDataSQLToMongo',
+            badges__pb2.MigrationRequestSQLToMongo.SerializeToString,
             badges__pb2.MigrationReply.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

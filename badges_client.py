@@ -7,52 +7,51 @@ import grpc
 from google.protobuf.json_format import MessageToJson, ParseDict
 import json
 
+def gen_sql_connection_object(conn_path):
+    f = open(conn_path)
+    conn_json = json.load(f)
+    return ParseDict(conn_json, badges_pb2.ConnectionIOSQL())
+
+def gen_mongo_connection_object(conn_path):
+    f = open(conn_path)
+    conn_json = json.load(f)
+    return ParseDict(conn_json, badges_pb2.ConnectionIOMongo())
+
 def run(conn_in,conn_out, table, type):
     with grpc.insecure_channel("localhost:50051") as channel:
         stub = badges_pb2_grpc.BadgeServiceStub(channel)
-        #origin
-        f_in = open(conn_in)
-        origin_json = json.load(f_in)
-        origin = ParseDict(origin_json, badges_pb2.ConnectionIO())
-        #destination 
-        f_out= open(conn_out)
-        dest_json = json.load(f_out)
-        destination = ParseDict(dest_json, badges_pb2.ConnectionIO())
-        stub_request = badges_pb2.MigrationRequest(origin = origin, destination = destination, table=table, type=type)
-        stub_reply = stub.MigrateData(stub_request)
-        # for i in stub_reply:
-        print(stub_reply.outcome)
-        # print(stub_reply)
-        # if args[0] == "1":
-        #     stub_reply = stub.GetBadges(badges_pb2.BadgeRequest(name = "all"))
-        #     stub_to_str = MessageToJson(stub_reply)
-        #     print(stub_to_str)
-        # elif args[0] == "2": 
-        #     stub_request = badges_pb2.BadgeRequest(name = "stream")
-        #     stub_reply = stub.GetStreamBadge(stub_request)
-        #     for badge in stub_reply:
-        #         print("incoming ....\n\n")
-        #         print(MessageToJson(badge))
-        # #TODO: read file in argumes
-        # #TODO: change the way we are receiving arguments
-        # elif args[0] == "3":
-        #     #TODO: remember to use the Connection string'
-        #     f = open(args[1])
-        #     data = json.load(f)
-        #     print(data)
-        #     stub_request = ParseDict(data, badges_pb2.Connection())
-        #     stub_reply = stub.GetBadgesMysql(stub_request)
-        #     print("len", len(stub_reply.badges))
-        # elif args[0] == "4":
-        #     #TODO: remember to use the Connection string'
-        #     f = open(args[1])
-        #     data = json.load(f)
-        #     print(data)
-        #     stub_request = ParseDict(data, badges_pb2.Connection())
-        #     stub_reply = stub.GetStreamBadgeMysql(stub_request)
-        #     for badge in stub_reply:
-        #         print("incoming ....\n\n")
-        #         print(MessageToJson(badge))
+        if(type == "mysql"):
+            #origin
+            origin = gen_sql_connection_object(conn_in)
+            #destination 
+            destination = gen_sql_connection_object(conn_out)
+            stub_request = badges_pb2.MigrationRequestSQL(origin = origin, destination = destination, table=table, type=type)
+            stub_reply = stub.MigrateDataSQL(stub_request)
+            # for i in stub_reply:
+            print(stub_reply.outcome)
+        
+        if type == "mysql_to_mongo":
+            origin = gen_sql_connection_object(conn_in)
+            destination = gen_mongo_connection_object(conn_out)
+            stub_request = badges_pb2.MigrationRequestSQLToMongo(origin = origin, destination = destination, table=table, type=type)
+            stub_reply = stub.MigrateDataSQLToMongo(stub_request)
+            print(stub_reply.outcome)
+        
+        if type == "mongo":
+            origin = gen_mongo_connection_object(conn_in)
+            destination = gen_mongo_connection_object(conn_out)
+            stub_request = badges_pb2.MigrationRequestMongo(origin = origin, destination = destination, table=table, type=type)
+            stub_reply = stub.MigrateDataMongo(stub_request)
+            print(stub_reply.outcome)
+        
+        if type == "sql_to_mongo":
+            origin = gen_mongo_connection_object(conn_in)
+            destination = gen_sql_connection_object(conn_out)
+            stub_request = badges_pb2.MigrationRequestMongoToSQL(origin = origin, destination = destination, table=table, type=type)
+            stub_reply = stub.MigrateDataMongoToSQL(stub_request)
+            print(stub_reply.outcome)
+        
+        
 
 if __name__ == '__main__':
     import argparse
@@ -65,6 +64,6 @@ if __name__ == '__main__':
     parser.add_argument('--table', metavar='table', required=True,
                         help='name of table to migrate')
     parser.add_argument('--type', metavar='type', required=True,
-                        help='mysql or nosql')
+                        help='mysql or mon')
     args = parser.parse_args()
     run(conn_in=args.conn_in, conn_out=args.conn_out, table = args.table, type= args.type)          

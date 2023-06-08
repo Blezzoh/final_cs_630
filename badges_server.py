@@ -8,14 +8,110 @@ import badges_pb2_grpc
 import json
 from nanosql.nanoorm import create_table, drop_table_if_exist, insert
 
-from mysql_conn_fx import close_connection, connect_to_sql_with_login, get_cursor_and_rows_read_table,get_column_from_cursor, connect_to_sql_with_json, get_table_columns_statement
+from mysql_conn_fx import close_connection, connect_to_sql_with_login, get_cursor_and_rows_read_table,get_column_from_cursor, connect_to_sql_with_json, get_table_columns_statement, create_map_from_cursor
+from pymongo.errors import ConnectionFailure
 
+from mongo_conn_fx import close_mongo_connection, create_mongo_db, get_mongo_client, drop_collection_if_exist,get_documents_from_mongodb,get_documents_from_mongodb_w_converted_id
 # serializer and deserializer
 from google.protobuf.json_format import ParseDict, MessageToJson, MessageToDict
 
 
+def create_and_move_data_to_mongo(client, db_name, collection_name, data):
+    dest_db = create_mongo_db( client, db_name)
+    dest_collection = drop_collection_if_exist(dest_db,collection_name)
+    result = dest_collection.insert_many(data)
+    return result.inserted_ids
+
 class Badger(badges_pb2_grpc.BadgeServiceServicer):
-    def MigrateData(self, request, context):
+    def MigrateDataMongoToSQL(self, request, context):
+        conn_in_dict = MessageToDict(request.origin, preserving_proto_field_name=True)
+        conn_out_dict = MessageToDict(request.destination, preserving_proto_field_name=True)
+        table = request.table
+        origin_db_name = conn_in_dict['database']
+        conn_in = get_mongo_client(conn_in_dict['connectionString'])
+        
+        try:
+            conn_in.admin.command("ping")
+            conn_out = connect_to_sql_with_json(conn_in_dict)
+            if conn_out != None:
+                list_data = get_documents_from_mongodb_w_converted_id(conn_in, origin_db_name, table)
+                #TODO: needs to get the schema for the table. Needs a function
+            else:
+                print("connection to destination didn't work!")
+                return badges_pb2.MigrationReply(outcome="connection to destination didn't work!") 
+            
+        except ConnectionFailure:
+            print("connection to origin didn't work!")
+            return badges_pb2.MigrationReply(outcome="connection to origin didn't work!") 
+    def MigrateDataMongo(self, request, context):
+        conn_in_dict = MessageToDict(request.origin, preserving_proto_field_name=True)
+        conn_out_dict = MessageToDict(request.destination, preserving_proto_field_name=True)
+        table = request.table
+        origin_db_name = conn_in_dict['database']
+        destination_db_name = conn_out_dict['database']
+        
+        conn_in = get_mongo_client(conn_in_dict['connectionString'])
+        
+        try:
+            conn_in.admin.command("ping")
+            conn_out = get_mongo_client(conn_out_dict['connectionString'])
+            try:
+                conn_out.admin.command("ping")
+                list_data = get_documents_from_mongodb(conn_in, origin_db_name, table)
+                result_ids = create_and_move_data_to_mongo(conn_out, destination_db_name, table, list_data)
+                
+                #cleaning
+                close_mongo_connection(conn_in)
+                close_mongo_connection(conn_out)
+                nrows = len(result_ids)
+                
+                msg = "created {nrows} rows in {tbl}".format(nrows=nrows, tbl=table)
+                print(msg)
+                return badges_pb2.MigrationReply(outcome=msg)
+            
+            except ConnectionFailure:
+                print("connection to destination didn't work!")
+                return badges_pb2.MigrationReply(outcome="connection to destination didn't work!") 
+        except ConnectionFailure:
+            print("connection to origin didn't work!")
+            return badges_pb2.MigrationReply(outcome="connection to origin didn't work!") 
+        
+    def MigrateDataSQLToMongo(self, request, context):
+        conn_in_dict = MessageToDict(request.origin, preserving_proto_field_name=True)
+        conn_out_dict = MessageToDict(request.destination, preserving_proto_field_name=True)
+        table = request.table
+        print(conn_out_dict)
+        destination_db_name = conn_out_dict['database']
+        conn_in = connect_to_sql_with_json(conn_in_dict)
+        if conn_in != None:
+            client_out = get_mongo_client(conn_out_dict['connectionString'])
+            try:
+                client_out.admin.command("ping")
+                # connection to mysql origin and getting a list of data
+                (cursor_in, rows_in) = get_cursor_and_rows_read_table(conn_in, table)
+                print("connected with all the tables")
+                list_data = create_map_from_cursor(cursor_in, rows_in)
+                
+                # moving data to mongo db
+                result_ids = create_and_move_data_to_mongo(client_out, destination_db_name, table, list_data)
+                nrows = len(result_ids)
+                
+                #cleaning
+                close_mongo_connection(client_out)
+                cursor_in.close()
+                close_connection(conn_in)
+                msg = "created {nrows} rows in {tbl}".format(nrows=nrows, tbl=table)
+                print(msg)
+                return badges_pb2.MigrationReply(outcome=msg)
+            
+            except ConnectionFailure:
+                print("connection to destination didn't work!")
+                return badges_pb2.MigrationReply(outcome="connection to destination didn't work!") 
+        else:
+            print("connection to origin didn't work!")
+            return badges_pb2.MigrationReply(outcome="connection to origin didn't work!")
+
+    def MigrateDataSQL(self, request, context):
         conn_in_dict = MessageToDict(request.origin, preserving_proto_field_name=True)
         conn_out_dict = MessageToDict(request.destination, preserving_proto_field_name=True)
         table = request.table
@@ -62,12 +158,7 @@ class Badger(badges_pb2_grpc.BadgeServiceServicer):
         else:
             print("connection to origin didn't work!")
             return badges_pb2.MigrationReply(outcome="connection to origin didn't work!")
-        print(conn_in_dict)
-        print(conn_out_dict)
-        rpc_data = MessageToJson(request.origin) + "\n\n" + MessageToJson(request.destination)
-        rpc_resp = badges_pb2.MigrationReply()
-        rpc_resp.outcome = rpc_data
-        return rpc_resp
+   
     def GetBadgesMysql(self, request,context):
         conn = connect_to_sql_with_login(request.username, request.password, request.host, request.database, request.port)
         if conn != None:
