@@ -7,7 +7,7 @@ import json
 from nanosql.nanoorm import create_table
 from data.credentials_msql_local import username, pw, host, db, port, table_badge
 from mysql_conn_fx import close_connection, connect_to_sql_with_json, get_cursor_and_rows_read_table, create_map_from_cursor,get_column_from_cursor,get_table_columns_statement
-from mongo_conn_fx import get_mongo_client, get_documents_from_mongodb, close_mongo_connection
+from mongo_conn_fx import get_mongo_client, get_documents_from_mongodb, close_mongo_connection, get_sql_schema_from_mongo_document
 
 config2 ={
     "host": host,
@@ -26,18 +26,29 @@ columns = {
    "col1": "LONG NOT NULL",
    "col2": "TEXT NULL"
 }
-conn = None
-
-def test_mongo():
-  client = get_mongo_client(config3["connectionString"])
-  print(client.list_database_names())
-  print(client[config3["database"]].list_collection_names())
-  docs = get_documents_from_mongodb(client, config3["database"], "orders")
-  print(len(docs))
-  close_mongo_connection(client)
 
 
-test_mongo()
+
+
+# conn = connect_to_sql_with_json(conn_s)
+
+# if conn != None:
+    # close_connection(conn)
+
+# def test_mongo():
+#   client = get_mongo_client(config3["connectionString"])
+#   print(client.list_database_names())
+#   print(client[config3["database"]].list_collection_names())
+#   docs = get_documents_from_mongodb(client, config3["database"], "orders")
+#   print(len(docs))
+#   # print(get_sql_schema_from_mongo_document(docs[0]))
+#   t = get_sql_schema_from_mongo_document(docs[0])
+#   print(create_table("test", **t))
+#   print(docs[0])
+#   close_mongo_connection(client)
+
+
+# test_mongo()
 
 
 # conn = connect_to_sql_with_json(config2)

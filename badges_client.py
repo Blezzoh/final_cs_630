@@ -1,7 +1,9 @@
 import badges_pb2
 import badges_pb2_grpc
 import time
-import grpc 
+import grpc
+
+import time
 
 # serializer and deserializer
 from google.protobuf.json_format import MessageToJson, ParseDict
@@ -44,7 +46,7 @@ def run(conn_in,conn_out, table, type):
             stub_reply = stub.MigrateDataMongo(stub_request)
             print(stub_reply.outcome)
         
-        if type == "sql_to_mongo":
+        if type == "mongo_to_mysql":
             origin = gen_mongo_connection_object(conn_in)
             destination = gen_sql_connection_object(conn_out)
             stub_request = badges_pb2.MigrationRequestMongoToSQL(origin = origin, destination = destination, table=table, type=type)

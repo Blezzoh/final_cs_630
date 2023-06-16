@@ -11,7 +11,8 @@ from nanosql.nanoorm import create_table, drop_table_if_exist, insert
 from mysql_conn_fx import close_connection, connect_to_sql_with_login, get_cursor_and_rows_read_table,get_column_from_cursor, connect_to_sql_with_json, get_table_columns_statement, create_map_from_cursor
 from pymongo.errors import ConnectionFailure
 
-from mongo_conn_fx import close_mongo_connection, create_mongo_db, get_mongo_client, drop_collection_if_exist,get_documents_from_mongodb,get_documents_from_mongodb_w_converted_id
+from mongo_conn_fx import close_mongo_connection, create_mongo_db, get_mongo_client, drop_collection_if_exist,get_documents_from_mongodb
+from mongo_conn_fx import get_documents_from_mongodb_w_converted_id,get_sql_schema_from_mongo_document
 # serializer and deserializer
 from google.protobuf.json_format import ParseDict, MessageToJson, MessageToDict
 
@@ -32,10 +33,33 @@ class Badger(badges_pb2_grpc.BadgeServiceServicer):
         
         try:
             conn_in.admin.command("ping")
-            conn_out = connect_to_sql_with_json(conn_in_dict)
+            conn_out = connect_to_sql_with_json(conn_out_dict)
             if conn_out != None:
+                #getting documents from mongo and making sql schema script
+                # print("{} {} {}".format(conn_in, origin_db_name, table))
                 list_data = get_documents_from_mongodb_w_converted_id(conn_in, origin_db_name, table)
-                #TODO: needs to get the schema for the table. Needs a function
+                sql_schema_object = get_sql_schema_from_mongo_document(list_data[0])
+                sql_create_stment = create_table(table, **sql_schema_object)
+                
+                # needs to get the schema for the table. Needs a function
+                cursor_out = conn_out.cursor()
+                drp_table_if_exists = drop_table_if_exist(table)
+                cursor_out.execute(drp_table_if_exists)
+                cursor_out.execute(sql_create_stment)
+
+                for i in range(len(list_data)):
+                    item = list_data[i]
+                    insert_stmt = insert(table, **item)
+                    cursor_out.execute(insert_stmt)
+        
+                conn_out.commit()
+                cursor_out.close()
+                close_connection(conn_out)
+                close_mongo_connection(conn_in)
+                msg = "created {nrows} rows in {tbl}".format(nrows=len(list_data), tbl=table)
+                # print(msg)
+                return badges_pb2.MigrationReply(outcome=msg)
+                
             else:
                 print("connection to destination didn't work!")
                 return badges_pb2.MigrationReply(outcome="connection to destination didn't work!") 
@@ -80,7 +104,7 @@ class Badger(badges_pb2_grpc.BadgeServiceServicer):
         conn_in_dict = MessageToDict(request.origin, preserving_proto_field_name=True)
         conn_out_dict = MessageToDict(request.destination, preserving_proto_field_name=True)
         table = request.table
-        print(conn_out_dict)
+        # print(conn_out_dict)
         destination_db_name = conn_out_dict['database']
         conn_in = connect_to_sql_with_json(conn_in_dict)
         if conn_in != None:
@@ -89,7 +113,7 @@ class Badger(badges_pb2_grpc.BadgeServiceServicer):
                 client_out.admin.command("ping")
                 # connection to mysql origin and getting a list of data
                 (cursor_in, rows_in) = get_cursor_and_rows_read_table(conn_in, table)
-                print("connected with all the tables")
+                # print("connected with all the tables")
                 list_data = create_map_from_cursor(cursor_in, rows_in)
                 
                 # moving data to mongo db
@@ -101,7 +125,7 @@ class Badger(badges_pb2_grpc.BadgeServiceServicer):
                 cursor_in.close()
                 close_connection(conn_in)
                 msg = "created {nrows} rows in {tbl}".format(nrows=nrows, tbl=table)
-                print(msg)
+                # print(msg)
                 return badges_pb2.MigrationReply(outcome=msg)
             
             except ConnectionFailure:
@@ -121,23 +145,21 @@ class Badger(badges_pb2_grpc.BadgeServiceServicer):
             
             if(conn_out != None):
                 (cursor_in, rows_in) = get_cursor_and_rows_read_table(conn_in, table)
-                print("connected with all the tables")
+                # print("connected with all the tables")
                 cursor_out = conn_out.cursor()
                 drp_table_if_exists = drop_table_if_exist(table)
                 table_columns = get_table_columns_statement(cursor_in.description)
-                print(drp_table_if_exists)
                 create_table_stmt = create_table(table, **table_columns)
-                print(create_table_stmt)
+                # print(create_table_stmt)
                 cursor_out.execute(drp_table_if_exists)
                 cursor_out.execute(create_table_stmt)
-                print(create_table_stmt)
+                # print(drp_table_if_exists)
+                # print(create_table_stmt)
 
-                print(drp_table_if_exists+"\n" + create_table_stmt +"\n")
+                # print(drp_table_if_exists+"\n" + create_table_stmt +"\n")
                 for i in range(len(rows_in)):
                     item = rows_in[i]
                     data_map = get_column_from_cursor(cursor_in.description, item)
-                    if( i== 0):
-                        print(type(data_map["orderDate"]))
                     insert_stmt = insert(table, **data_map)
                     cursor_out.execute(insert_stmt)
                     # print(i)
@@ -146,7 +168,7 @@ class Badger(badges_pb2_grpc.BadgeServiceServicer):
                 conn_out.commit()
                 cursor_out.close()
                 msg = "created {nrows} rows in {tbl}".format(nrows=len(rows_in), tbl=table)
-                print(msg)
+                # print(msg)
                 close_connection(conn_out)
                 cursor_in.close()
                 close_connection(conn_in)
