@@ -1,0 +1,17 @@
+created 3 rows in painter. read time: 88.89102935791016. write time: 228.96814346313477
+overall: seconds 2.3758647441864014 milliseconds 2375.8647441864014
+created 100 rows in thousand. read time: 360.41784286499023. write time: 509.2909336090088
+overall: seconds 3.208732843399048 milliseconds 3208.732843399048
+created 1291 rows in postlinks. read time: 939.4118785858154. write time: 3171.999454498291
+overall: seconds 6.276884317398071 milliseconds 6276.884317398071
+
+[88, 360, 939] [2375, 3208, 6276]
+
+created 326 rows in orders. read time: 439.5606517791748. write time: 2168.184518814087
+overall: seconds 4.768693447113037 milliseconds 4768.693447113037
+created 1291 rows in postlinks. read time: 939.4118785858154. write time: 3171.999454498291
+overall: seconds 6.276884317398071 milliseconds 6276.884317398071
+created 14103 rows in comments. read time: 7616.740942001343. write time: 4641.1895751953125
+overall: seconds 14.673807621002197 milliseconds 14673.807621002197
+connection to destination didn't work!
+overall: seconds 277.66055941581726 milliseconds 277660.55941581726

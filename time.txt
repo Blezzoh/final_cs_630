@@ -1,0 +1,27 @@
+LOCAL MOVE SQL TO SQL
+_______________________
+1. 
+
+created 3 rows in painter
+seconds 0.042832136154174805 milliseconds 42.832136154174805
+
+
+2.
+created 326 rows in orders
+seconds 0.12549638748168945 milliseconds 125.49638748168945
+
+
+3. 
+created 1291 rows in postlinks
+seconds 0.29955291748046875 milliseconds 299.55291748046875
+
+4.
+created 2592 rows in users
+seconds 1.0465130805969238 milliseconds 1046.5130805969238
+
+5.
+created 14103 rows in comments
+seconds 3.955437421798706 milliseconds 3955.437421798706
+
+created 14103 rows in comments
+seconds 3.338184356689453 milliseconds 3338.184356689453

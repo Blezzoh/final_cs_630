@@ -92,12 +92,13 @@ def get_all_documents_in_mongo_db(db):
 def get_documents_from_mongodb(client, db_name, collection_name):
     db = client[db_name]
     collection = db[collection_name]
-    return list(collection.find())
+    return list(collection.find({}))
     
     
 def get_documents_from_mongodb_w_converted_id(client, db_name, collection_name):
     db = client[db_name]
     collection = db[collection_name]
+    # print( collection.find())
     lst =  list(collection.find())
     if lst[0]["_id"] != None:
         values = []

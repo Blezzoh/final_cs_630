@@ -1,0 +1,7 @@
+created 3 rows in painter. read time: 175.67133903503418. write time: 388.92412185668945
+overall: seconds 2.5837252140045166 milliseconds 2583.7252140045166
+created 100 rows in thousand. read time: 510.59722900390625. write time: 8895.979642868042
+overall: seconds 11.312510251998901 milliseconds 11312.510251998901
+created 1291 rows in postlinks. read time: 398.7915515899658. write time: 116943.47763061523
+overall: seconds 119.38634252548218 milliseconds 119386.3425254821
+[175, 510, 398] [388, 8895, 116943]

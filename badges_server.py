@@ -30,14 +30,21 @@ class Badger(badges_pb2_grpc.BadgeServiceServicer):
         table = request.table
         origin_db_name = conn_in_dict['database']
         conn_in = get_mongo_client(conn_in_dict['connectionString'])
-        
+        # print(conn_in_dict['connectionString'])
         try:
             conn_in.admin.command("ping")
             conn_out = connect_to_sql_with_json(conn_out_dict)
             if conn_out != None:
                 #getting documents from mongo and making sql schema script
-                # print("{} {} {}".format(conn_in, origin_db_name, table))
+                #reading
+                st_s = time.time()
+                # print(conn_in_dict['connectionString'])
+                
                 list_data = get_documents_from_mongodb_w_converted_id(conn_in, origin_db_name, table)
+                ed_s = time.time()
+                # print(conn_in_dict['connectionString'])
+                
+                
                 sql_schema_object = get_sql_schema_from_mongo_document(list_data[0])
                 sql_create_stment = create_table(table, **sql_schema_object)
                 
@@ -46,17 +53,25 @@ class Badger(badges_pb2_grpc.BadgeServiceServicer):
                 drp_table_if_exists = drop_table_if_exist(table)
                 cursor_out.execute(drp_table_if_exists)
                 cursor_out.execute(sql_create_stment)
-
+                # print(sql_create_stment)
+                # conn_out.commit()
+                
+                st_d = time.time()
                 for i in range(len(list_data)):
                     item = list_data[i]
                     insert_stmt = insert(table, **item)
+                    # print(insert_stmt)
                     cursor_out.execute(insert_stmt)
         
                 conn_out.commit()
+                ed_d = time.time()
+                
                 cursor_out.close()
-                close_connection(conn_out)
+                r=(ed_s -st_s) * 1000 
+                w=(ed_d -st_d) * 1000
                 close_mongo_connection(conn_in)
-                msg = "created {nrows} rows in {tbl}".format(nrows=len(list_data), tbl=table)
+                close_connection(conn_out)
+                msg = "created {nrows} rows in {tbl}. read time: {r}. write time: {w}".format(nrows=len(list_data), tbl=table,r=r,w=w)
                 # print(msg)
                 return badges_pb2.MigrationReply(outcome=msg)
                 
@@ -67,6 +82,7 @@ class Badger(badges_pb2_grpc.BadgeServiceServicer):
         except ConnectionFailure:
             print("connection to origin didn't work!")
             return badges_pb2.MigrationReply(outcome="connection to origin didn't work!") 
+        
     def MigrateDataMongo(self, request, context):
         conn_in_dict = MessageToDict(request.origin, preserving_proto_field_name=True)
         conn_out_dict = MessageToDict(request.destination, preserving_proto_field_name=True)
@@ -81,15 +97,23 @@ class Badger(badges_pb2_grpc.BadgeServiceServicer):
             conn_out = get_mongo_client(conn_out_dict['connectionString'])
             try:
                 conn_out.admin.command("ping")
+                
+                st_s = time.time()
                 list_data = get_documents_from_mongodb(conn_in, origin_db_name, table)
+                
+                ed_s = time.time()
+                
+                st_d = time.time()
                 result_ids = create_and_move_data_to_mongo(conn_out, destination_db_name, table, list_data)
                 
+                
+                ed_d = time.time()
                 #cleaning
-                close_mongo_connection(conn_in)
                 close_mongo_connection(conn_out)
+                close_mongo_connection(conn_in)
                 nrows = len(result_ids)
                 
-                msg = "created {nrows} rows in {tbl}".format(nrows=nrows, tbl=table)
+                msg = "created {nrows} rows in {tbl}. read time: {r}. write time: {w}".format(nrows=nrows, tbl=table,r=(ed_s -st_s) * 1000 ,w=(ed_d -st_d) * 1000)
                 print(msg)
                 return badges_pb2.MigrationReply(outcome=msg)
             
@@ -114,17 +138,23 @@ class Badger(badges_pb2_grpc.BadgeServiceServicer):
                 # connection to mysql origin and getting a list of data
                 (cursor_in, rows_in) = get_cursor_and_rows_read_table(conn_in, table)
                 # print("connected with all the tables")
+                st_s = time.time()
                 list_data = create_map_from_cursor(cursor_in, rows_in)
+                ed_s = time.time()
                 
                 # moving data to mongo db
+                st_d = time.time()
                 result_ids = create_and_move_data_to_mongo(client_out, destination_db_name, table, list_data)
+                
                 nrows = len(result_ids)
                 
                 #cleaning
                 close_mongo_connection(client_out)
+                ed_d = time.time()
+                
                 cursor_in.close()
                 close_connection(conn_in)
-                msg = "created {nrows} rows in {tbl}".format(nrows=nrows, tbl=table)
+                msg = "created {nrows} rows in {tbl}. read time: {r}. write time: {w}".format(nrows=nrows, tbl=table,r=(ed_s -st_s) * 1000 ,w=(ed_d -st_d) * 1000)
                 # print(msg)
                 return badges_pb2.MigrationReply(outcome=msg)
             
@@ -144,7 +174,9 @@ class Badger(badges_pb2_grpc.BadgeServiceServicer):
             conn_out = connect_to_sql_with_json(conn_out_dict)
             
             if(conn_out != None):
+                st_s = time.time()
                 (cursor_in, rows_in) = get_cursor_and_rows_read_table(conn_in, table)
+                ed_s = time.time()
                 # print("connected with all the tables")
                 cursor_out = conn_out.cursor()
                 drp_table_if_exists = drop_table_if_exist(table)
@@ -153,10 +185,12 @@ class Badger(badges_pb2_grpc.BadgeServiceServicer):
                 # print(create_table_stmt)
                 cursor_out.execute(drp_table_if_exists)
                 cursor_out.execute(create_table_stmt)
+                conn_out.commit()
                 # print(drp_table_if_exists)
                 # print(create_table_stmt)
 
                 # print(drp_table_if_exists+"\n" + create_table_stmt +"\n")
+                st_d = time.time()
                 for i in range(len(rows_in)):
                     item = rows_in[i]
                     data_map = get_column_from_cursor(cursor_in.description, item)
@@ -166,8 +200,10 @@ class Badger(badges_pb2_grpc.BadgeServiceServicer):
                     # print(" ")
                     # yield badges_pb2.MigrationReply(outcome=format("executed %s", insert_stmt))
                 conn_out.commit()
+                ed_d = time.time()
                 cursor_out.close()
-                msg = "created {nrows} rows in {tbl}".format(nrows=len(rows_in), tbl=table)
+                msg = "created {nrows} rows in {tbl}. read time: {r}. write time: {w}".format(nrows=len(rows_in), tbl=table,r=(ed_s -st_s) * 1000 ,w=(ed_d -st_d) * 1000)
+            
                 # print(msg)
                 close_connection(conn_out)
                 cursor_in.close()

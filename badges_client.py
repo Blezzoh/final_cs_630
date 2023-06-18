@@ -27,31 +27,59 @@ def run(conn_in,conn_out, table, type):
             origin = gen_sql_connection_object(conn_in)
             #destination 
             destination = gen_sql_connection_object(conn_out)
+            st = time.time()
             stub_request = badges_pb2.MigrationRequestSQL(origin = origin, destination = destination, table=table, type=type)
             stub_reply = stub.MigrateDataSQL(stub_request)
             # for i in stub_reply:
+            ed = time.time()
+            tm = "overall: seconds {} milliseconds {}".format((ed -st), (ed -st) * 1000)
             print(stub_reply.outcome)
+            print(tm)
         
         if type == "mysql_to_mongo":
             origin = gen_sql_connection_object(conn_in)
             destination = gen_mongo_connection_object(conn_out)
+            
+            st = time.time()
+            
             stub_request = badges_pb2.MigrationRequestSQLToMongo(origin = origin, destination = destination, table=table, type=type)
             stub_reply = stub.MigrateDataSQLToMongo(stub_request)
+            
+            ed = time.time()
+            tm = "overall: seconds {} milliseconds {}".format((ed -st), (ed -st) * 1000)
+            
             print(stub_reply.outcome)
+            print(tm)
         
         if type == "mongo":
             origin = gen_mongo_connection_object(conn_in)
             destination = gen_mongo_connection_object(conn_out)
+            
+            st = time.time()
+            
             stub_request = badges_pb2.MigrationRequestMongo(origin = origin, destination = destination, table=table, type=type)
             stub_reply = stub.MigrateDataMongo(stub_request)
+            
+            ed = time.time()
+            tm = "overall: seconds {} milliseconds {}".format((ed -st), (ed -st) * 1000)
+            
             print(stub_reply.outcome)
+            print(tm)
         
         if type == "mongo_to_mysql":
             origin = gen_mongo_connection_object(conn_in)
             destination = gen_sql_connection_object(conn_out)
+            
+            st = time.time()
+            
             stub_request = badges_pb2.MigrationRequestMongoToSQL(origin = origin, destination = destination, table=table, type=type)
             stub_reply = stub.MigrateDataMongoToSQL(stub_request)
+            
+            ed = time.time()
+            tm = "overall: seconds {} milliseconds {}".format((ed -st), (ed -st) * 1000)
+            
             print(stub_reply.outcome)
+            print(tm)
         
         
 
